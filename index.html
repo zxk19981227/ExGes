@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ExGes: Expressive Human Motion Retrieval and Modulation for Audio-Driven Gesture Synthesis</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="ExGes: a novel retrieval-enhanced diffusion framework for audio-driven gesture synthesis." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── Design Tokens ─────────────────────────────────────────── */
+    :root {
+      --bg:           #04050f;
+      --bg-soft:      #080c1a;
+      --card:         #0c1225;
+      --card-hover:   #101828;
+      --border:       rgba(148,163,184,.18);
+      --border-mid:   rgba(148,163,184,.28);
+      --accent:       #60a5fa;
+      --accent-glow:  rgba(96,165,250,.20);
+      --accent2:      #a78bfa;
+      --green:        #4ade80;
+      --green-glow:   rgba(74,222,128,.22);
+      --text:         #e2e8f0;
+      --text-muted:   #94a3b8;
+      --text-dim:     #64748b;
+      --radius-card:  20px;
+      --radius-video: 14px;
+      --shadow:       0 24px 56px rgba(2,6,23,.80);
+    }
+
+    /* ─── Reset & Base ──────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: "Inter", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    img, video, iframe { display: block; max-width: 100%; }
+
+    /* ─── Animated BG Grid ──────────────────────────────────────── */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+      opacity: .55;
+    }
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 55% at 50% -10%, rgba(96,165,250,.12) 0, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ─── Layout ────────────────────────────────────────────────── */
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 56px 20px 80px;
+    }
+    @media (min-width: 768px) { .page { padding: 72px 32px 100px; } }
+
+    .section { margin-top: 52px; }
+    .section + .section { margin-top: 64px; }
+
+    /* ─── Hero Header ───────────────────────────────────────────── */
+    .hero { text-align: center; }
+
+    .conference-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 14px;
+      border-radius: 999px;
+      background: rgba(96,165,250,.08);
+      border: 1px solid rgba(96,165,250,.35);
+      font-size: 12px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 22px;
+    }
+    .conference-badge-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 5px var(--accent-glow);
+    }
+
+    .hero-title {
+      font-size: clamp(24px, 4vw, 42px);
+      font-weight: 700;
+      letter-spacing: -.03em;
+      line-height: 1.18;
+      background: linear-gradient(135deg, #e2e8f0 30%, #60a5fa 65%, #a78bfa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+    .hero-title span.keyword {
+      background: linear-gradient(90deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ─── Authors ───────────────────────────────────────────────── */
+    .authors {
+      margin-top: 22px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px 10px;
+      font-size: 14px;
+    }
+    .author-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      background: rgba(12,18,37,.85);
+      border: 1px solid var(--border-mid);
+      color: var(--text);
+      font-size: 13px;
+      transition: border-color .2s, background .2s;
+    }
+    .author-chip:hover {
+      border-color: rgba(96,165,250,.55);
+      background: rgba(96,165,250,.08);
+    }
+    .author-chip.corresponding { border-color: rgba(96,165,250,.5); color: var(--accent); }
+    .author-chip small {
+      font-size: 10px;
+      color: var(--text-muted);
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: rgba(148,163,184,.12);
+    }
+
+    .affiliation {
+      margin-top: 14px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* ─── Action Buttons ────────────────────────────────────────── */
+    .action-row {
+      margin-top: 28px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 20px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .2s;
+      text-decoration: none !important;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.08);
+      box-shadow: 0 4px 20px rgba(37,99,235,.35);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(37,99,235,.5);
+    }
+    .btn-ghost {
+      background: rgba(12,18,37,.9);
+      color: var(--text);
+      border: 1px solid var(--border-mid);
+    }
+    .btn-ghost:hover {
+      border-color: rgba(96,165,250,.45);
+      background: rgba(96,165,250,.07);
+      color: var(--accent);
+      transform: translateY(-1px);
+    }
+    .btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+    /* ─── Stats Row ─────────────────────────────────────────────── */
+    .stats-row {
+      margin-top: 36px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+    }
+    .stat-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 14px 24px;
+      border-radius: 14px;
+      background: rgba(12,18,37,.85);
+      border: 1px solid var(--border);
+      min-width: 130px;
+    }
+    .stat-value {
+      font-size: 26px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; letter-spacing: .04em; }
+
+    /* ─── Section Header ────────────────────────────────────────── */
+    .sec-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+    .sec-head-line {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--border-mid), transparent);
+    }
+    .sec-title {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -.01em;
+      white-space: nowrap;
+    }
+    .sec-tag {
+      font-size: 11px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: var(--accent-glow);
+      border: 1px solid rgba(96,165,250,.3);
+      color: var(--accent);
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    /* ─── Abstract ──────────────────────────────────────────────── */
+    .abstract-card {
+      border-radius: var(--radius-card);
+      background: linear-gradient(160deg, rgba(12,18,37,.9), rgba(8,12,26,.95));
+      border: 1px solid var(--border-mid);
+      padding: 28px 32px;
+      box-shadow: var(--shadow);
+    }
+    .abstract-text {
+      font-size: 15px;
+      line-height: 1.8;
+      color: var(--text-muted);
+    }
+    .abstract-text strong { color: var(--text); }
+    .abstract-highlight {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* ─── Main Figure ───────────────────────────────────────────── */
+    .figure-card {
+      border-radius: var(--radius-card);
+      background: linear-gradient(160deg, rgba(12,18,37,.85), rgba(4,5,15,.95));
+      border: 1px solid var(--border-mid);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .figure-inner { padding: 18px; }
+    .figure-img-wrap {
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(4,5,15,.9);
+      background: #000;
+    }
+    .figure-img {
+      width: 100%;
+      max-height: 520px;
+      object-fit: contain;
+      background: radial-gradient(circle at center, #0f172a 0, #020617 60%);
+    }
+    .figure-caption {
+      margin-top: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 14px;
+      border-radius: 999px;
+      background: rgba(4,5,15,.9);
+      border: 1px solid var(--border);
+      font-size: 12.5px;
+      color: var(--text-muted);
+    }
+    .figure-caption-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: rgba(96,165,250,.1);
+      border: 1px solid rgba(96,165,250,.25);
+      color: var(--accent);
+    }
+    .figure-caption-pill span {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent);
+    }
+
+    /* ─── Main / Featured Video ─────────────────────────────────── */
+    .main-video-card {
+      border-radius: var(--radius-card);
+      background: linear-gradient(160deg, rgba(8,12,26,.9), rgba(4,5,15,.98));
+      border: 1px solid var(--border-mid);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .main-video-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px 0;
+      margin-bottom: 12px;
+    }
+    .main-video-title-text { font-size: 15px; font-weight: 600; }
+    .featured-badge {
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(96,165,250,.18), rgba(167,139,250,.18));
+      border: 1px solid rgba(96,165,250,.35);
+      color: var(--accent);
+      letter-spacing: .05em;
+    }
+    .main-video-wrap {
+      margin: 0 16px 16px;
+      border-radius: var(--radius-video);
+      overflow: hidden;
+      border: 1px solid rgba(4,5,15,.95);
+      background: #000;
+    }
+    .main-video-wrap video,
+    .main-video-wrap iframe {
+      width: 100%;
+      aspect-ratio: 16/9;
+      border: 0;
+    }
+
+    /* ─── Demo Video Grid ───────────────────────────────────────── */
+    .video-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    @media (min-width: 600px) {
+      .video-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (min-width: 900px) {
+      .video-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    .video-card {
+      border-radius: var(--radius-card);
+      background: linear-gradient(160deg, rgba(12,18,37,.9), rgba(4,5,15,.95));
+      border: 1px solid var(--border);
+      box-shadow: 0 12px 32px rgba(2,6,23,.7);
+      overflow: hidden;
+      transition: transform .2s, border-color .2s, box-shadow .2s;
+    }
+    .video-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--border-mid);
+      box-shadow: 0 20px 48px rgba(2,6,23,.9);
+    }
+    .video-thumb {
+      border-bottom: 1px solid var(--border);
+      background: #000;
+      overflow: hidden;
+    }
+    .video-thumb video,
+    .video-thumb iframe {
+      width: 100%;
+      aspect-ratio: 16/9;
+      object-fit: cover;
+      border: 0;
+    }
+    .video-info { padding: 10px 14px 12px; }
+    .video-info-title {
+      font-size: 13.5px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .video-info-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+    .video-info-footer {
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .tag {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(12,18,37,.9);
+      border: 1px solid var(--border-mid);
+      color: var(--text-muted);
+    }
+    .tag-blue   { background: rgba(96,165,250,.1);  border-color: rgba(96,165,250,.3);  color: var(--accent);  }
+    .tag-purple { background: rgba(167,139,250,.1); border-color: rgba(167,139,250,.3); color: var(--accent2); }
+    .tag-green  { background: rgba(74,222,128,.1);  border-color: rgba(74,222,128,.3);  color: var(--green);   }
+
+    /* ─── Method Card Grid ──────────────────────────────────────── */
+    .method-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+    @media (min-width: 640px) { .method-grid { grid-template-columns: repeat(3, 1fr); } }
+    .method-card {
+      border-radius: 16px;
+      background: rgba(12,18,37,.85);
+      border: 1px solid var(--border);
+      padding: 20px;
+      transition: border-color .2s;
+    }
+    .method-card:hover { border-color: var(--border-mid); }
+    .method-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; margin-bottom: 12px;
+    }
+    .method-icon-1 { background: rgba(96,165,250,.15); }
+    .method-icon-2 { background: rgba(167,139,250,.15); }
+    .method-icon-3 { background: rgba(74,222,128,.15); }
+    .method-card-title { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+    .method-card-desc  { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+
+    /* ─── BibTeX ────────────────────────────────────────────────── */
+    .bibtex-card {
+      border-radius: var(--radius-card);
+      background: rgba(8,12,26,.9);
+      border: 1px solid var(--border-mid);
+      overflow: hidden;
+    }
+    .bibtex-header {
+      padding: 10px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .bibtex-header span { font-size: 12px; color: var(--text-dim); font-family: "Fira Code", monospace; }
+    .copy-btn {
+      font-size: 12px; padding: 4px 12px; border-radius: 6px;
+      background: rgba(96,165,250,.1); border: 1px solid rgba(96,165,250,.25);
+      color: var(--accent); cursor: pointer; transition: all .15s;
+    }
+    .copy-btn:hover { background: rgba(96,165,250,.2); }
+    .bibtex-code {
+      padding: 18px 20px;
+      font-family: "Fira Code", monospace;
+      font-size: 12.5px;
+      line-height: 1.85;
+      color: var(--text-muted);
+      overflow-x: auto;
+      white-space: pre;
+    }
+    .bibtex-key   { color: var(--accent);  }
+    .bibtex-value { color: var(--accent2); }
+    .bibtex-brace { color: var(--green);   }
+
+    /* ─── Footer ────────────────────────────────────────────────── */
+    .footer {
+      margin-top: 80px;
+      border-top: 1px solid var(--border);
+      padding-top: 28px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      font-size: 12.5px;
+      color: var(--text-dim);
+    }
+
+    /* ─── Divider ───────────────────────────────────────────────── */
+    hr.divider {
+      border: none;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border-mid), transparent);
+      margin: 0;
+    }
+
+    /* ─── Tooltip note ──────────────────────────────────────────── */
+    .replace-note {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--text-dim);
+      background: rgba(96,165,250,.05);
+      border: 1px dashed rgba(96,165,250,.2);
+      border-radius: 8px;
+      padding: 8px 14px;
+    }
+    .replace-note code {
+      font-family: "Fira Code", monospace;
+      color: var(--accent);
+      background: rgba(96,165,250,.1);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ╔══════════════════════════════════════╗ -->
+  <!-- ║           HERO HEADER                ║ -->
+  <!-- ╚══════════════════════════════════════╝ -->
+  <header class="hero">
+    <div class="conference-badge">
+      <span class="conference-badge-dot"></span>
+      Under Review &nbsp;·&nbsp; 2025
+    </div>
+
+    <h1 class="hero-title">
+      <span class="keyword">ExGes</span>: Expressive Human Motion Retrieval<br />
+      and Modulation for Audio-Driven Gesture Synthesis
+    </h1>
+
+    <!-- Authors -->
+    <div class="authors">
+      <span class="author-chip corresponding">Xukun Zhou <small>†</small></span>
+      <span class="author-chip">Fengxin Li</span>
+      <span class="author-chip">Ming Chen</span>
+      <span class="author-chip">Yan Zhou</span>
+      <span class="author-chip">Pengfei Wan</span>
+      <span class="author-chip">Di Zhang</span>
+      <span class="author-chip">Yeying Jin</span>
+      <span class="author-chip">Zhaoxin Fan</span>
+      <span class="author-chip">Hongyan Liu</span>
+      <span class="author-chip">Jun He</span>
+    </div>
+    <p class="affiliation">
+      † Corresponding Author &nbsp;·&nbsp;
+      Renmin University of China &amp; Kuaishou Technology
+    </p>
+
+    <!-- Buttons -->
+    <div class="action-row">
+      <a href="#" class="btn btn-primary">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0
+            01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        Paper (arXiv)
+      </a>
+      <a href="#" class="btn btn-ghost">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+        </svg>
+        Code (Coming Soon)
+      </a>
+      <a href="#demo-videos" class="btn btn-ghost">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832
+            l3.197-2.132a1 1 0 000-1.664z" />
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        Demo Videos
+      </a>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-value">↓6.2%</div>
+        <div class="stat-label">FGD vs EMAGE</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">↑5.3%</div>
+        <div class="stat-label">Motion Diversity</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">71.3%</div>
+        <div class="stat-label">User Study Preference</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">BEAT2</div>
+        <div class="stat-label">Benchmark Dataset</div>
+      </div>
+    </div>
+  </header>
+
+  <hr class="divider" style="margin-top: 52px;" />
+
+  <!-- ╔══════════════════════════════════════╗ -->
+  <!-- ║             ABSTRACT                 ║ -->
+  <!-- ╚══════════════════════════════════════╝ -->
+  <section class="section">
+    <div class="sec-head">
+      <div class="sec-title">Abstract</div>
+      <div class="sec-head-line"></div>
+    </div>
+
+    <div class="abstract-card">
+      <p class="abstract-text">
+        Audio-driven human gesture synthesis is a crucial task with broad applications in
+        <strong>virtual avatars</strong>, <strong>human-computer interaction</strong>, and
+        <strong>creative content generation</strong>. Despite notable progress, existing methods
+        often produce gestures that are coarse, lack expressiveness, and fail to fully align
+        with audio semantics.
+      </p>
+      <br />
+      <p class="abstract-text">
+        To address these challenges, we propose <span class="abstract-highlight">ExGes</span>,
+        a novel <strong>retrieval-enhanced diffusion framework</strong> with three key designs:
+        <strong>(1) a Motion Base Construction</strong>, which builds a gesture library using
+        the training dataset;
+        <strong>(2) a Motion Retrieval Module</strong>, employing contrastive learning and
+        momentum distillation for fine-grained reference pose retrieval; and
+        <strong>(3) a Precision Control Module</strong>, integrating partial masking and
+        stochastic masking to enable flexible and fine-grained control.
+      </p>
+      <br />
+      <p class="abstract-text">
+        Experimental evaluations on <strong>BEAT2</strong> demonstrate that ExGes reduces
+        <span class="abstract-highlight">Fréchet Gesture Distance by 6.2%</span> and improves
+        <span class="abstract-highlight">motion diversity by 5.3%</span> over EMAGE, with user
+        studies revealing a <span class="abstract-highlight">71.3% preference</span> for its
+        naturalness and semantic relevance. Code will be released upon acceptance.
+      </p>
+    </div>
+  </section>
+
+  <!-- ╔══════════════════════════════════════╗ -->
+  <!-- ║            METHOD OVERVIEW           ║ -->
+  <!-- ╚══════════════════════════════════════╝ -->
+  <section class="section">
+    <div class="sec-head">
+      <div class="sec-title">Method</div>
+      <div class="sec-tag">Framework</div>
+      <div class="sec-head-line"></div>
+    </div>
+
+    <!-- Three key components -->
+    <div class="method-grid" style="margin-bottom: 24px;">
+      <div class="method-card">
+        <div class="method-icon method-icon-1">🗃️</div>
+        <div class="method-card-title">Motion Base Construction</div>
+        <div class="method-card-desc">
+          Builds a compact gesture library from the training dataset to provide diverse
+          and semantically rich reference poses for downstream retrieval.
+        </div>
+      </div>
+      <div class="method-card">
+        <div class="method-icon method-icon-2">🔍</div>
+        <div class="method-card-title">Motion Retrieval Module</div>
+        <div class="method-card-desc">
+          Employs contrastive learning and momentum distillation to retrieve fine-grained
+          reference poses that align with audio semantics and context.
+        </div>
+      </div>
+      <div class="method-card">
+        <div class="method-icon method-icon-3">🎛️</div>
+        <div class="method-card-title">Precision Control Module</div>
+        <div class="method-card-desc">
+          Integrates partial masking and stochastic masking strategies for flexible,
+          fine-grained control during the diffusion-based synthesis process.
+        </div>
+      </div>
+    </div>
+
+    <!-- Main figure -->
+    <div class="figure-card">
+      <div class="figure-inner">
+        <div class="figure-img-wrap">
+          <img
+            src="assets/main_figure.jpg"
+            alt="ExGes framework overview"
+            class="figure-img"
+          />
+        </div>
+        <div class="figure-caption">
+          <span>
+            <strong>Figure 1.</strong> Overview of the ExGes framework. Given an audio input,
+            ExGes retrieves expressive reference poses and synthesizes realistic, semantically
+            aligned gestures via a retrieval-enhanced diffusion process.
+          </span>
+          <span class="figure-caption-pill"><span></span>Main Figure</span>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ╔══════════════════════════════════════╗ -->
+  <!-- ║         MAIN SHOWCASE VIDEO          ║ -->
+  <!-- ╚══════════════════════════════════════╝ -->
+  <section class="section">
+    <div class="sec-head">
+      <div class="sec-title">Main Showcase Video</div>
+      <div class="sec-tag">Featured</div>
+      <div class="sec-head-line"></div>
+    </div>
+
+    <div class="main-video-card">
+      <div class="main-video-header">
+        <div class="main-video-title-text">ExGes — Full Method &amp; Results Overview</div>
+        <div class="featured-badge">▶ Main Video</div>
+      </div>
+      <div class="main-video-wrap">
+        <video controls>
+          <source src="video/exges.mp4" type="video/mp4" />
+          Your browser does not support HTML5 video.
+        </video>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ╔══════════════════════════════════════╗ -->
+  <!-- ║           DEMO VIDEOS                ║ -->
+  <!-- ╚══════════════════════════════════════╝ -->
+  <section class="section" id="demo-videos">
+    <div class="sec-head">
+      <div class="sec-title">Demo Videos</div>
+      <div class="sec-tag">Gallery</div>
+      <div class="sec-head-line"></div>
+    </div>
+
+    <div class="video-grid">
+
+      <!-- Demo 1 -->
+      <article class="video-card">
+        <div class="video-thumb">
+          <video controls muted loop>
+            <source src="video/video1.mp4" type="video/mp4" />
+          </video>
+        </div>
+        <div class="video-info">
+          <div class="video-info-footer">
+            <span class="video-info-title">Sample 1</span>
+            <span class="tag tag-blue">Generated</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- Demo 2 -->
+      <article class="video-card">
+        <div class="video-thumb">
+          <video controls muted loop>
+            <source src="video/2.mp4" type="video/mp4" />
+          </video>
+        </div>
+        <div class="video-info">
+          <div class="video-info-footer">
+            <span class="video-info-title">Sample 2</span>
+            <span class="tag tag-blue">Generated</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- Demo 3 -->
+      <article class="video-card">
+        <div class="video-thumb">
+          <video controls muted loop>
+            <source src="video/3.mp4" type="video/mp4" />
+          </video>
+        </div>
+        <div class="video-info">
+          <div class="video-info-footer">
+            <span class="video-info-title">Sample 3</span>
+            <span class="tag tag-blue">Generated</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- Demo 4 -->
+      <article class="video-card">
+        <div class="video-thumb">
+          <video controls muted loop>
+            <source src="video/4.mp4" type="video/mp4" />
+          </video>
+        </div>
+        <div class="video-info">
+          <div class="video-info-footer">
+            <span class="video-info-title">Sample 4</span>
+            <span class="tag tag-blue">Generated</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- Demo 5 -->
+      <article class="video-card">
+        <div class="video-thumb">
+          <video controls muted loop>
+            <source src="video/5.mp4" type="video/mp4" />
+          </video>
+        </div>
+        <div class="video-info">
+          <div class="video-info-footer">
+            <span class="video-info-title">Sample 5</span>
+            <span class="tag tag-blue">Generated</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- Demo 6 -->
+      <article class="video-card">
+        <div class="video-thumb">
+          <video controls muted loop>
+            <source src="video/6.mp4" type="video/mp4" />
+          </video>
+        </div>
+        <div class="video-info">
+          <div class="video-info-footer">
+            <span class="video-info-title">Sample 6</span>
+            <span class="tag tag-blue">Generated</span>
+          </div>
+        </div>
+      </article>
+
+    </div>
+
+  </section>
+
+  <!-- ╔══════════════════════════════════════╗ -->
+  <!-- ║              BIBTEX                  ║ -->
+  <!-- ╚══════════════════════════════════════╝ -->
+  <section class="section">
+    <div class="sec-head">
+      <div class="sec-title">BibTeX</div>
+      <div class="sec-head-line"></div>
+    </div>
+
+    <div class="bibtex-card">
+      <div class="bibtex-header">
+        <span>citation.bib</span>
+        <button class="copy-btn" onclick="copyBibtex()">Copy</button>
+      </div>
+      <pre class="bibtex-code" id="bibtex-block"><span class="bibtex-brace">@article{</span><span class="bibtex-key">zhou2025exges</span><span class="bibtex-brace">,</span>
+  <span class="bibtex-key">title</span>     = <span class="bibtex-brace">{</span><span class="bibtex-value">ExGes: Expressive Human Motion Retrieval and Modulation for Audio-Driven Gesture Synthesis</span><span class="bibtex-brace">},</span>
+  <span class="bibtex-key">author</span>    = <span class="bibtex-brace">{</span><span class="bibtex-value">Zhou, Xukun and Li, Fengxin and Chen, Ming and Zhou, Yan and Wan, Pengfei and Zhang, Di and Jin, Yeying and Fan, Zhaoxin and Liu, Hongyan and He, Jun</span><span class="bibtex-brace">},</span>
+  <span class="bibtex-key">journal</span>   = <span class="bibtex-brace">{</span><span class="bibtex-value">arXiv preprint</span><span class="bibtex-brace">},</span>
+  <span class="bibtex-key">year</span>      = <span class="bibtex-brace">{</span><span class="bibtex-value">2025</span><span class="bibtex-brace">}</span>
+<span class="bibtex-brace">}</span></pre>
+    </div>
+  </section>
+
+  <!-- ╔══════════════════════════════════════╗ -->
+  <!-- ║              FOOTER                  ║ -->
+  <!-- ╚══════════════════════════════════════╝ -->
+  <footer class="footer">
+    <span>© 2025 ExGes Authors. All rights reserved.</span>
+    <span>
+      This page template is inspired by
+      <a href="https://nerfies.github.io" target="_blank" rel="noopener">Nerfies</a>
+      and similar academic project pages.
+    </span>
+  </footer>
+
+</div>
+
+<script>
+  function copyBibtex() {
+    const raw = `@article{zhou2025exges,
+  title     = {ExGes: Expressive Human Motion Retrieval and Modulation for Audio-Driven Gesture Synthesis},
+  author    = {Zhou, Xukun and Li, Fengxin and Chen, Ming and Zhou, Yan and Wan, Pengfei and Zhang, Di and Jin, Yeying and Fan, Zhaoxin and Liu, Hongyan and He, Jun},
+  journal   = {arXiv preprint},
+  year      = {2025}
+}`;
+    navigator.clipboard.writeText(raw).then(() => {
+      const btn = document.querySelector('.copy-btn');
+      btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+    });
+  }
+</script>
+</body>
+</html>
