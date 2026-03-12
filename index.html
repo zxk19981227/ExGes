@@ -2,6 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <script>
+    (function(){
+      var p = location.pathname;
+      var b = p.endsWith('/') || p === '' ? p : (p.includes('.') ? p.replace(/\/[^/]*$/, '/') : p + '/');
+      var base = document.createElement('base');
+      base.href = b || '/';
+      document.head.insertBefore(base, document.head.firstChild);
+    })();
+  </script>
   <title>ExGes: Expressive Human Motion Retrieval and Modulation for Audio-Driven Gesture Synthesis</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="ExGes: a novel retrieval-enhanced diffusion framework for audio-driven gesture synthesis." />
@@ -364,6 +373,7 @@
     .main-video-wrap iframe {
       width: 100%;
       aspect-ratio: 16/9;
+      object-fit: contain;
       border: 0;
     }
 
@@ -401,9 +411,11 @@
     .video-thumb video,
     .video-thumb iframe {
       width: 100%;
-      height: auto;
+      aspect-ratio: 16/9;
+      object-fit: contain;
       display: block;
       border: 0;
+      background: #000;
     }
     .video-info { padding: 10px 14px 12px; }
     .video-info-title {
@@ -663,7 +675,7 @@
       <br />
       <p class="abstract-text">
         Experimental evaluations on <strong>BEAT2</strong> demonstrate that ExGes reduces
-        <span class="abstract-highlight">Fréchet Gesture Distance by 4.55%</span> and improves
+        <span class="abstract-highlight">Fréchet Gesture Distance by 4.55IP%</span> and improves
         <span class="abstract-highlight">motion diversity by 5.3%</span> over EMAGE, with user
         studies revealing a <span class="abstract-highlight">71.3% preference</span> for its
         naturalness and semantic relevance. Code will be released upon acceptance.
@@ -748,7 +760,7 @@
         <div class="featured-badge">▶ Main Video</div>
       </div>
       <div class="main-video-wrap">
-        <video controls>
+        <video controls preload="metadata" playsinline>
           <source src="video/exges.mp4" type="video/mp4" />
           Your browser does not support HTML5 video.
         </video>
@@ -771,7 +783,7 @@
 
       <article class="video-card">
         <div class="video-thumb">
-          <video controls muted loop>
+          <video controls muted loop preload="metadata" playsinline>
             <source src="video/test/2_scott_0_1_1_merged.mp4" type="video/mp4" />
           </video>
         </div>
@@ -785,7 +797,7 @@
 
       <article class="video-card">
         <div class="video-thumb">
-          <video controls muted loop>
+          <video controls muted loop preload="metadata" playsinline>
             <source src="video/test/2_scott_0_2_2_merged.mp4" type="video/mp4" />
           </video>
         </div>
@@ -799,7 +811,7 @@
 
       <article class="video-card">
         <div class="video-thumb">
-          <video controls muted loop>
+          <video controls muted loop preload="metadata" playsinline>
             <source src="video/test/2_scott_0_3_3_merged.mp4" type="video/mp4" />
           </video>
         </div>
@@ -813,7 +825,7 @@
 
       <article class="video-card">
         <div class="video-thumb">
-          <video controls muted loop>
+          <video controls muted loop preload="metadata" playsinline>
             <source src="video/test/2_scott_0_4_4_merged.mp4" type="video/mp4" />
           </video>
         </div>
@@ -827,7 +839,7 @@
 
       <article class="video-card">
         <div class="video-thumb">
-          <video controls muted loop>
+          <video controls muted loop preload="metadata" playsinline>
             <source src="video/test/2_scott_0_5_5_merged.mp4" type="video/mp4" />
           </video>
         </div>
@@ -841,7 +853,7 @@
 
       <article class="video-card">
         <div class="video-thumb">
-          <video controls muted loop>
+          <video controls muted loop preload="metadata" playsinline>
             <source src="video/test/2_scott_0_6_6_merged.mp4" type="video/mp4" />
           </video>
         </div>
@@ -855,7 +867,7 @@
 
       <article class="video-card">
         <div class="video-thumb">
-          <video controls muted loop>
+          <video controls muted loop preload="metadata" playsinline>
             <source src="video/test/2_scott_0_7_7_merged.mp4" type="video/mp4" />
           </video>
         </div>
@@ -869,7 +881,7 @@
 
       <article class="video-card">
         <div class="video-thumb">
-          <video controls muted loop>
+          <video controls muted loop preload="metadata" playsinline>
             <source src="video/test/2_scott_0_8_8_merged.mp4" type="video/mp4" />
           </video>
         </div>
@@ -883,7 +895,7 @@
 
       <article class="video-card">
         <div class="video-thumb">
-          <video controls muted loop>
+          <video controls muted loop preload="metadata" playsinline>
             <source src="video/test/2_scott_0_65_65_merged.mp4" type="video/mp4" />
           </video>
         </div>
@@ -897,7 +909,7 @@
 
       <article class="video-card">
         <div class="video-thumb">
-          <video controls muted loop>
+          <video controls muted loop preload="metadata" playsinline>
             <source src="video/test/2_scott_0_73_73_merged.mp4" type="video/mp4" />
           </video>
         </div>
@@ -911,7 +923,7 @@
 
       <article class="video-card">
         <div class="video-thumb">
-          <video controls muted loop>
+          <video controls muted loop preload="metadata" playsinline>
             <source src="video/test/2_scott_0_81_81_merged.mp4" type="video/mp4" />
           </video>
         </div>
@@ -925,7 +937,7 @@
 
       <article class="video-card">
         <div class="video-thumb">
-          <video controls muted loop>
+          <video controls muted loop preload="metadata" playsinline>
             <source src="video/test/2_scott_0_87_87_merged.mp4" type="video/mp4" />
           </video>
         </div>
@@ -939,7 +951,7 @@
 
       <article class="video-card">
         <div class="video-thumb">
-          <video controls muted loop>
+          <video controls muted loop preload="metadata" playsinline>
             <source src="video/test/2_scott_0_95_95_merged.mp4" type="video/mp4" />
           </video>
         </div>
@@ -953,7 +965,7 @@
 
       <article class="video-card">
         <div class="video-thumb">
-          <video controls muted loop>
+          <video controls muted loop preload="metadata" playsinline>
             <source src="video/test/2_scott_0_103_103_merged.mp4" type="video/mp4" />
           </video>
         </div>
@@ -967,7 +979,7 @@
 
       <article class="video-card">
         <div class="video-thumb">
-          <video controls muted loop>
+          <video controls muted loop preload="metadata" playsinline>
             <source src="video/test/2_scott_0_111_111_merged.mp4" type="video/mp4" />
           </video>
         </div>
@@ -997,7 +1009,7 @@
 
       <article class="video-card">
         <div class="video-thumb">
-          <video controls muted loop>
+          <video controls muted loop preload="metadata" playsinline>
             <source src="video/wild/26620.mp4" type="video/mp4" />
           </video>
         </div>
@@ -1011,7 +1023,7 @@
 
       <article class="video-card">
         <div class="video-thumb">
-          <video controls muted loop>
+          <video controls muted loop preload="metadata" playsinline>
             <source src="video/wild/97732.mp4" type="video/mp4" />
           </video>
         </div>
@@ -1025,7 +1037,7 @@
 
       <article class="video-card">
         <div class="video-thumb">
-          <video controls muted loop>
+          <video controls muted loop preload="metadata" playsinline>
             <source src="video/wild/97910.mp4" type="video/mp4" />
           </video>
         </div>
